@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rote"
+  short_description: "Operate Rote via rote-toolkit"
+  default_prompt: "Use $rote to manage Rote notes and related resources through the rote-toolkit CLI, SDK, or MCP server."
