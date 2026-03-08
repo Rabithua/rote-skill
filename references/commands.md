@@ -1,6 +1,7 @@
 # Rote command map
 
 Auth config lives at `~/.rote-toolkit/config.json`.
+Public explore-note reads do not require auth.
 
 ## Setup
 
@@ -21,6 +22,7 @@ rote reaction remove <roteid> like
 rote profile get
 rote profile update --nickname "New Name" --description "Bio"
 rote permissions
+rote explore --limit 20 --skip 0
 rote search "keyword" --limit 20 --skip 20
 rote search "keyword" --archived -t "tag1,tag2"
 rote list --limit 10 --skip 0 --archived -t "tag1,tag2"
@@ -56,6 +58,12 @@ rote permissions
 rote profile get
 ```
 
+Browse public explore notes without auth:
+
+```bash
+rote explore --limit 10
+```
+
 ## SDK surface
 
 Import from the package root:
@@ -71,6 +79,7 @@ Primary methods:
 - `deleteNote`
 - `searchNotes`
 - `listNotes`
+- `exploreNotes`
 - `createArticle`
 - `addReaction`
 - `removeReaction`
@@ -124,6 +133,11 @@ const recent = await client.listNotes({
   archived: true,
   tag: ["archive"],
 });
+
+const explore = await client.exploreNotes({
+  limit: 20,
+  skip: 0,
+});
 ```
 
 Profile and permission checks:
@@ -156,6 +170,7 @@ Use SDK or MCP for these composed tasks:
 - Attach many notes to a shared `articleId` after creating the article once.
 - Build account diagnostics by combining `getProfile` and `getPermissions`.
 - Add or remove reactions across a search result set.
+- Pull public explore notes for discovery or inspiration flows before authenticated operations.
 
 Typical batch update loop:
 
@@ -229,6 +244,7 @@ for (let skip = 0; ; skip += pageSize) {
 ## Failure handling
 
 - If config is missing, run `rote config` before retrying.
+- If the task is only to read public explore notes, do not block on missing config.
 - If a task references a note loosely, resolve it with `search` or `list` before `update` or `delete`.
 - If the API key may be restricted, run `rote permissions` or `getPermissions` before write operations.
 - If `updateNote` would send no changed fields, stop and ask for the intended mutation instead of issuing a noop.
@@ -379,6 +395,25 @@ for (const note of matches) {
 }
 ```
 
+### Explore discovery playbook
+
+Use when the user wants public notes from the explore page, trend sampling, or inspiration material without requiring account auth.
+
+Steps:
+
+1. Use `exploreNotes` or `rote explore` first.
+2. Paginate with `limit` and `skip` for broader sampling.
+3. Treat results as public discovery data, not as directly mutable targets.
+4. Switch to authenticated search or update flows only if the user then wants operations on owned notes.
+
+```ts
+const client = new RoteClient();
+const notes = await client.exploreNotes({
+  limit: 20,
+  skip: 0,
+});
+```
+
 ## MCP tools
 
 Available tools:
@@ -394,10 +429,12 @@ Available tools:
 - `rote_get_permissions`
 - `rote_search_notes`
 - `rote_list_notes`
+- `rote_explore_notes`
 
 ## MCP usage guidance
 
 - Use `rote_search_notes` or `rote_list_notes` first when the target note ID is unknown.
+- Use `rote_explore_notes` for public note discovery when authentication is unnecessary or unavailable.
 - Use `rote_update_note` for content edits, tag changes, visibility changes, pinning, archiving, or article rebinding.
 - Use `rote_create_article` plus `rote_create_note`/`rote_update_note` when building a note collection under one article.
 - Use `rote_get_permissions` before operations that may fail due to restricted keys.
