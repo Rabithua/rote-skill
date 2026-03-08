@@ -14,3 +14,9 @@ This repository contains a reusable skill for AI agents to work with Rote throug
 
 - [Rote](https://github.com/Rabithua/Rote)
 - [rote-toolkit](https://github.com/Rabithua/rote-toolkit)
+
+## Version Reminder
+
+Keep `rote-toolkit` up to date when updating this skill.
+
+New skill capabilities may depend on newly added CLI, SDK, or MCP features in `rote-toolkit`, so users should upgrade `rote-toolkit` to the latest available version before using newly documented features.

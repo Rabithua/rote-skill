@@ -14,3 +14,9 @@
 
 - [Rote](https://github.com/Rabithua/Rote)
 - [rote-toolkit](https://github.com/Rabithua/rote-toolkit)
+
+## 版本提醒
+
+更新这个 skill 时，请同时保持 `rote-toolkit` 为最新版本。
+
+skill 的新能力可能依赖 `rote-toolkit` 新增的 CLI、SDK 或 MCP 特性，因此在使用 README 或 skill 中新增的能力前，应先升级 `rote-toolkit`。
