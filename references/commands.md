@@ -26,6 +26,12 @@ rote explore --limit 20 --skip 0
 rote search "keyword" --limit 20 --skip 20
 rote search "keyword" --archived -t "tag1,tag2"
 rote list --limit 10 --skip 0 --archived -t "tag1,tag2"
+rote articles --limit 20 --skip 0 -k "keyword"
+rote tags
+rote heatmap --start 2024-01-01 --end 2024-12-31
+rote stats
+rote settings get
+rote settings update --allow-explore true
 rote mcp
 ```
 
@@ -81,11 +87,21 @@ Primary methods:
 - `listNotes`
 - `exploreNotes`
 - `createArticle`
+- `listArticles`
+- `getArticleByNoteId`
+- `batchGetNotes`
 - `addReaction`
 - `removeReaction`
 - `getProfile`
 - `updateProfile`
 - `getPermissions`
+- `getTags`
+- `getHeatmap`
+- `getStatistics`
+- `getSettings`
+- `updateSettings`
+- `batchDeleteAttachments`
+- `updateAttachmentsSortOrder`
 
 ## SDK patterns
 
@@ -157,6 +173,41 @@ Reactions:
 ```ts
 await client.addReaction({ roteid: "<noteId>", type: "like" });
 await client.removeReaction({ roteid: "<noteId>", type: "like" });
+```
+
+Extended API operations:
+
+```ts
+// List articles
+const articles = await client.listArticles({ limit: 20, skip: 0, keyword: "digest" });
+
+// Batch get notes by IDs (max 100)
+const notes = await client.batchGetNotes({ ids: ["id1", "id2", "id3"] });
+
+// Get tag statistics
+const tags = await client.getTags();
+
+// Get activity heatmap
+const heatmap = await client.getHeatmap({
+  startDate: "2024-01-01",
+  endDate: "2024-12-31",
+});
+
+// Get statistics
+const stats = await client.getStatistics();
+
+// Get and update settings
+const settings = await client.getSettings();
+await client.updateSettings({ allowExplore: true });
+
+// Batch delete attachments (max 100)
+const result = await client.batchDeleteAttachments({ ids: ["attachmentId1", "attachmentId2"] });
+
+// Update attachment sort order
+await client.updateAttachmentsSortOrder({
+  noteId: "<noteId>",
+  attachmentIds: ["att1", "att2", "att3"],
+});
 ```
 
 ## High-level operations
@@ -422,6 +473,9 @@ Available tools:
 - `rote_update_note`
 - `rote_delete_note`
 - `rote_create_article`
+- `rote_list_articles`
+- `rote_get_article_by_note`
+- `rote_batch_get_notes`
 - `rote_add_reaction`
 - `rote_remove_reaction`
 - `rote_get_profile`
@@ -430,6 +484,13 @@ Available tools:
 - `rote_search_notes`
 - `rote_list_notes`
 - `rote_explore_notes`
+- `rote_get_tags`
+- `rote_get_heatmap`
+- `rote_get_statistics`
+- `rote_get_settings`
+- `rote_update_settings`
+- `rote_batch_delete_attachments`
+- `rote_update_attachments_sort`
 
 ## MCP usage guidance
 
