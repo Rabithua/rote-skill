@@ -175,6 +175,19 @@ await client.addReaction({ roteid: "<noteId>", type: "like" });
 await client.removeReaction({ roteid: "<noteId>", type: "like" });
 ```
 
+The `metadata` field is an optional JSON object stored alongside the reaction.
+Its primary use is recording the **source channel** via a `source` key:
+
+| Channel | `metadata.source` | Injected by |
+|---------|-------------------|-------------|
+| Web UI  | `"web"`           | frontend    |
+| CLI     | `"cli"`           | cli.ts      |
+| MCP     | `"mcp"`           | mcp.ts      |
+| SDK     | caller decides    | user code   |
+
+CLI and MCP automatically inject `{ source: "cli" }` / `{ source: "mcp" }`.
+SDK callers can pass any extra key-value pairs alongside `source`.
+
 Extended API operations:
 
 ```ts
