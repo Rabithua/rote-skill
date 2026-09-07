@@ -57,7 +57,7 @@ rote share create "<noteId>"
 rote share revoke "<noteId>"
 ```
 
-`share create` checks the server-configured frontend origin before creating a link. It does not fall back to an official domain. A status response is either `{ "active": false }` or contains `active`, `token`, `createdAt`, and `url`; `url` can be `null` when an existing token cannot be presented as a browser URL.
+`share create` checks the server-configured frontend origin before creating a link. It does not fall back to an official domain. CLI `share status` reports only whether sharing is active and its creation time; it does not print the bearer token or URL. The SDK and MCP state contract remains `{ "active": false }` or contains `active`, `token`, `createdAt`, and `url`; `url` can be `null` when an existing token cannot be presented as a browser URL.
 
 Run `share create` or `share revoke` only after an explicit user request. Do not paste the resulting bearer URL into command logs or repeat it in a completion summary.
 
@@ -118,6 +118,18 @@ await client.updateArticle({
 ```
 
 Send only fields the user asked to change. Decide whether a tag operation means merge or replace; do not silently discard existing tags.
+
+### Reaction source metadata
+
+```ts
+await client.addReaction({
+  roteid: "<noteId>",
+  type: "like",
+  metadata: { source: "sdk" },
+});
+```
+
+SDK callers should identify their source in `metadata.source`. The CLI uses `cli`, and the stdio MCP uses `mcp`.
 
 ### Share lifecycle
 
