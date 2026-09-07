@@ -1,32 +1,82 @@
-# Rote command map
+# Rote command and tool reference
 
-Auth config lives at `~/.rote-toolkit/config.json`.
-Public explore-note reads do not require auth.
+Sharing requires Rote Server 2.4.0 or later. Local/OpenKey workflows require `rote-toolkit` 0.6.0 or later.
 
-## Setup
+## Authentication paths
+
+### Rote Server HTTP MCP
+
+Use an already-connected remote MCP when available. It authenticates through OAuth. Request only the scopes needed for the task; `notes:share` is not a default scope.
+
+Never replace an OAuth failure with a Toolkit OpenKey operation without telling the user. An OAuth token, an OpenKey, and a note share token are different credentials.
+
+### rote-toolkit
+
+Toolkit CLI, SDK, and stdio MCP use the OpenKey stored in `~/.rote-toolkit/config.json`:
 
 ```bash
 rote config
+rote permissions
 ```
 
-## CLI quick commands
+`SHAREROTE` is required for share status, creation, and revocation and is not selected for a newly created OpenKey by default.
+
+## CLI
+
+### Notes
 
 ```bash
 rote add "note content"
 rote add "note content" --title "Daily Note" -t "journal,daily"
 rote add "note content" --public --pin
 rote add "note content" --article-id "<articleId>"
-rote article add "article content"
-rote reaction add <roteid> like
-rote reaction remove <roteid> like
+rote get "<noteId>"
+rote search "keyword" --limit 20 --skip 0
+rote search "keyword" --archived -t "tag1,tag2"
+rote list --limit 20 --skip 0 --archived -t "tag1,tag2"
+rote explore --limit 20 --skip 0
+```
+
+Use the SDK or an MCP tool for note update/delete operations. When the note is described by content rather than ID, search first and narrow ambiguous matches before mutation.
+
+### Articles
+
+```bash
+rote article add "# Article content"
+rote article get "<articleId>"
+rote article update "<articleId>" "# Revised content"
+rote article delete "<articleId>"
+rote articles --limit 20 --skip 0 -k "keyword"
+```
+
+### Share links
+
+```bash
+rote share status "<noteId>"
+rote share create "<noteId>"
+rote share revoke "<noteId>"
+```
+
+`share create` checks the server-configured frontend origin before creating a link. It does not fall back to an official domain. CLI `share status` reports only whether sharing is active and its creation time; it does not print the bearer token or URL. The SDK and MCP state contract remains `{ "active": false }` or contains `active`, `token`, `createdAt`, and `url`; `url` can be `null` when an existing token cannot be presented as a browser URL.
+
+Run `share create` or `share revoke` only after an explicit user request. Do not paste the resulting bearer URL into command logs or repeat it in a completion summary.
+
+### Attachments
+
+```bash
+rote attachment upload "<noteId>" ./photo.jpg ./clip.mp4
+rote attachment delete "<attachmentId>"
+```
+
+The upload command accepts explicit image/video paths, obtains presigned URLs, uploads each file with PUT, and finalizes the records on the note. It does not scan directories or discover files implicitly. Live Photo pairs are available only through the SDK primitives described below.
+
+### Other account operations
+
+```bash
+rote reaction add "<noteId>" like
+rote reaction remove "<noteId>" like
 rote profile get
 rote profile update --nickname "New Name" --description "Bio"
-rote permissions
-rote explore --limit 20 --skip 0
-rote search "keyword" --limit 20 --skip 20
-rote search "keyword" --archived -t "tag1,tag2"
-rote list --limit 10 --skip 0 --archived -t "tag1,tag2"
-rote articles --limit 20 --skip 0 -k "keyword"
 rote tags
 rote heatmap --start 2024-01-01 --end 2024-12-31
 rote stats
@@ -35,480 +85,139 @@ rote settings update --allow-explore true
 rote mcp
 ```
 
-## High-level CLI workflows
-
-Create a public pinned note with tags:
-
-```bash
-rote add "Weekly launch recap" --title "Launch Recap" -t "weekly,launch" --public --pin
-```
-
-Create an article, then attach future notes to it:
-
-```bash
-rote article add "# Project Digest"
-rote add "Digest summary" --article-id "<articleId>" -t "digest"
-```
-
-Review recent notes in a topic area:
-
-```bash
-rote search "MCP" --limit 10 -t "ai,notes"
-rote list --limit 20 -t "ai"
-```
-
-Check account state before sensitive operations:
-
-```bash
-rote permissions
-rote profile get
-```
-
-Browse public explore notes without auth:
-
-```bash
-rote explore --limit 10
-```
-
-## SDK surface
-
-Import from the package root:
+## SDK
 
 ```ts
 import { RoteClient } from "rote-toolkit";
-```
 
-Primary methods:
-
-- `createNote`
-- `updateNote`
-- `deleteNote`
-- `searchNotes`
-- `listNotes`
-- `exploreNotes`
-- `createArticle`
-- `listArticles`
-- `getArticleByNoteId`
-- `batchGetNotes`
-- `addReaction`
-- `removeReaction`
-- `getProfile`
-- `updateProfile`
-- `getPermissions`
-- `getTags`
-- `getHeatmap`
-- `getStatistics`
-- `getSettings`
-- `updateSettings`
-- `batchDeleteAttachments`
-- `updateAttachmentsSortOrder`
-
-## SDK patterns
-
-Create a note:
-
-```ts
 const client = new RoteClient();
-const note = await client.createNote({
-  content: "Today I learned MCP",
-  title: "Learning Log",
-  tags: ["journal", "ai"],
-  isPublic: false,
-  pin: false,
-});
 ```
 
-Update visibility, tags, archive state, or bound article:
+### Method map
+
+- Notes: `createNote`, `getNote`, `updateNote`, `deleteNote`, `searchNotes`, `listNotes`, `exploreNotes`, `batchGetNotes`
+- Articles: `createArticle`, `getArticle`, `updateArticle`, `deleteArticle`, `listArticles`, `getArticleByNoteId`
+- Shares: `getNoteShare`, `createNoteShare`, `revokeNoteShare`, `getNoteShareState`, `createResolvedNoteShare`, `resolveNoteShareUrl`
+- Attachments: `presignAttachmentUploads`, `refreshAttachmentUploadReservation`, `finalizeAttachmentUploads`, `deleteAttachment`, `batchDeleteAttachments`, `updateAttachmentsSortOrder`
+- Other: `addReaction`, `removeReaction`, `getProfile`, `updateProfile`, `getPermissions`, `getTags`, `getHeatmap`, `getStatistics`, `getSettings`, `updateSettings`
+
+### Safe partial updates
 
 ```ts
-await client.updateNote({
-  noteId: "<noteId>",
-  title: "Revised title",
-  tags: ["knowledge", "rote"],
-  isPublic: true,
-  pin: true,
-  archived: false,
-  articleId: "<articleId>",
-});
-```
-
-Search or list with pagination:
-
-```ts
-const searchResults = await client.searchNotes({
-  keyword: "MCP",
-  limit: 20,
-  skip: 0,
-  archived: false,
-  tag: ["ai", "notes"],
-});
-
-const recent = await client.listNotes({
-  limit: 20,
-  skip: 20,
-  archived: true,
-  tag: ["archive"],
-});
-
-const explore = await client.exploreNotes({
-  limit: 20,
-  skip: 0,
-});
-```
-
-Profile and permission checks:
-
-```ts
-const profile = await client.getProfile();
-const permissions = await client.getPermissions();
-
-await client.updateProfile({
-  nickname: "New Name",
-  description: "Builder and note taker",
-});
-```
-
-Reactions:
-
-```ts
-await client.addReaction({ roteid: "<noteId>", type: "like" });
-await client.removeReaction({ roteid: "<noteId>", type: "like" });
-```
-
-The `metadata` field is an optional JSON object stored alongside the reaction.
-Its primary use is recording the **source channel** via a `source` key:
-
-| Channel | `metadata.source` | Injected by |
-|---------|-------------------|-------------|
-| Web UI  | `"web"`           | frontend    |
-| CLI     | `"cli"`           | cli.ts      |
-| MCP     | `"mcp"`           | mcp.ts      |
-| SDK     | caller decides    | user code   |
-
-CLI and MCP automatically inject `{ source: "cli" }` / `{ source: "mcp" }`.
-SDK callers can pass any extra key-value pairs alongside `source`.
-
-Extended API operations:
-
-```ts
-// List articles
-const articles = await client.listArticles({ limit: 20, skip: 0, keyword: "digest" });
-
-// Batch get notes by IDs (max 100)
-const notes = await client.batchGetNotes({ ids: ["id1", "id2", "id3"] });
-
-// Get tag statistics
-const tags = await client.getTags();
-
-// Get activity heatmap
-const heatmap = await client.getHeatmap({
-  startDate: "2024-01-01",
-  endDate: "2024-12-31",
-});
-
-// Get statistics
-const stats = await client.getStatistics();
-
-// Get and update settings
-const settings = await client.getSettings();
-await client.updateSettings({ allowExplore: true });
-
-// Batch delete attachments (max 100)
-const result = await client.batchDeleteAttachments({ ids: ["attachmentId1", "attachmentId2"] });
-
-// Update attachment sort order
-await client.updateAttachmentsSortOrder({
-  noteId: "<noteId>",
-  attachmentIds: ["att1", "att2", "att3"],
-});
-```
-
-## High-level operations
-
-Use SDK or MCP for these composed tasks:
-
-- Search, inspect, then selectively update matching notes.
-- Bulk-archive or bulk-unarchive note sets after filtering by keyword, tag, or pagination window.
-- Migrate notes from private to public in a controlled batch.
-- Re-tag old notes by searching a topic and updating each note with normalized tags.
-- Attach many notes to a shared `articleId` after creating the article once.
-- Build account diagnostics by combining `getProfile` and `getPermissions`.
-- Add or remove reactions across a search result set.
-- Pull public explore notes for discovery or inspiration flows before authenticated operations.
-
-Typical batch update loop:
-
-```ts
-const client = new RoteClient();
-const notes = await client.searchNotes({ keyword: "draft", limit: 50 });
-
-for (const note of notes) {
-  await client.updateNote({
-    noteId: note.id,
-    archived: true,
-    tags: ["draft", "archived"],
-  });
-}
-```
-
-## Update strategy
-
-- Treat `updateNote` as a partial update, but only send fields you intend to change.
-- When normalizing tags, decide whether the task means replace or merge. Do not silently drop existing tags unless the user asked for replacement.
-- When changing visibility, send only `isPublic` and any explicitly requested fields.
-- When archiving or unarchiving, avoid rewriting content unless the task also asks for content changes.
-- When rebinding notes to an `articleId`, preserve title, tags, pin state, and visibility unless the user asked to alter them.
-
-Safe merge pattern for tags:
-
-```ts
-const mergedTags = Array.from(
-  new Set([...(note.tags ?? []), "knowledge", "reviewed"]),
-);
-
+const note = await client.getNote("<noteId>");
 await client.updateNote({
   noteId: note.id,
-  tags: mergedTags,
+  tags: Array.from(new Set([...(note.tags ?? []), "reviewed"])),
+});
+
+const article = await client.getArticle("<articleId>");
+await client.updateArticle({
+  articleId: article.id,
+  content: "# Revised content",
 });
 ```
 
-## Batch operation guardrails
+Send only fields the user asked to change. Decide whether a tag operation means merge or replace; do not silently discard existing tags.
 
-- Discover targets first with `searchNotes` or `listNotes`; do not update blind IDs unless the user already supplied them.
-- Paginate through large result sets with `limit` and `skip` instead of assuming one page is complete.
-- Keep batch sizes conservative, such as 20 to 50 notes per pass.
-- If the operation is destructive or high-impact, summarize the target set before executing.
-- For mixed-result batches, continue collecting successes and failures instead of aborting on the first failure unless the task is explicitly all-or-nothing.
-- After batch updates, report counts for scanned, changed, skipped, and failed notes.
-
-Paginated scan pattern:
+### Reaction source metadata
 
 ```ts
-const client = new RoteClient();
-const pageSize = 20;
-
-for (let skip = 0; ; skip += pageSize) {
-  const notes = await client.searchNotes({
-    keyword: "draft",
-    limit: pageSize,
-    skip,
-  });
-
-  if (notes.length === 0) break;
-
-  for (const note of notes) {
-    await client.updateNote({
-      noteId: note.id,
-      archived: true,
-    });
-  }
-}
+await client.addReaction({
+  roteid: "<noteId>",
+  type: "like",
+  metadata: { source: "sdk" },
+});
 ```
 
-## Failure handling
+SDK callers should identify their source in `metadata.source`. The CLI uses `cli`, and the stdio MCP uses `mcp`.
 
-- If config is missing, run `rote config` before retrying.
-- If the task is only to read public explore notes, do not block on missing config.
-- If a task references a note loosely, resolve it with `search` or `list` before `update` or `delete`.
-- If the API key may be restricted, run `rote permissions` or `getPermissions` before write operations.
-- If `updateNote` would send no changed fields, stop and ask for the intended mutation instead of issuing a noop.
-- If a batch search returns ambiguous matches, summarize candidates and narrow the target set before mutating.
-- If the API returns a request failure, surface the server message directly because `RoteClient` already preserves it.
-
-## Playbooks
-
-### Bulk archive playbook
-
-Use when the user wants to archive or unarchive many notes selected by keyword, tags, or a review window.
-
-Steps:
-
-1. Discover candidate notes with `searchNotes` or `listNotes`.
-2. Summarize the candidate count and selection rule if the change is high-impact.
-3. Update only `archived` unless the task explicitly asks for more.
-4. Report scanned, changed, skipped, and failed counts.
+### Share lifecycle
 
 ```ts
-const client = new RoteClient();
-const notes = await client.searchNotes({
-  keyword: "draft",
-  limit: 50,
-  archived: false,
-});
+const state = await client.getNoteShareState("<noteId>");
 
-let changed = 0;
-for (const note of notes) {
-  await client.updateNote({
-    noteId: note.id,
-    archived: true,
-  });
-  changed += 1;
-}
+// Explicit user request required:
+const share = await client.createResolvedNoteShare("<noteId>");
+
+// Explicit user request required:
+await client.revokeNoteShare("<noteId>");
 ```
 
-### Retagging playbook
+`createResolvedNoteShare` validates the configured frontend origin before the share-record PUT. Use the raw `getNoteShare` method when an existing token must remain visible even if URL resolution is unavailable.
 
-Use when the user wants to normalize tags, add a new taxonomy, or remove obsolete labels across many notes.
-
-Steps:
-
-1. Search or list the target note set.
-2. Decide whether tags should be merged or replaced.
-3. Preserve unrelated existing tags unless the user explicitly wants replacement.
-4. Update only notes whose final tag set actually changes.
+### Attachment primitives
 
 ```ts
-const client = new RoteClient();
-const notes = await client.searchNotes({
-  keyword: "mcp",
-  limit: 50,
+const upload = await client.presignAttachmentUploads({
+  files: [
+    {
+      filename: "photo.heic",
+      contentType: "image/heic",
+      size: 1234,
+      mediaKind: "livePhoto",
+      pairedVideo: {
+        filename: "photo.mov",
+        contentType: "video/quicktime",
+        size: 5678,
+      },
+    },
+  ],
 });
 
-for (const note of notes) {
-  const nextTags = Array.from(
-    new Set([...(note.tags ?? []), "ai", "knowledge"]),
-  );
+// PUT bytes to upload.items[0].original.putUrl and
+// upload.items[0].pairedVideo.putUrl. Refresh only if the reservation expires.
 
-  const unchanged =
-    JSON.stringify([...(note.tags ?? [])].sort()) ===
-    JSON.stringify([...nextTags].sort());
-  if (unchanged) continue;
-
-  await client.updateNote({
-    noteId: note.id,
-    tags: nextTags,
-  });
-}
-```
-
-### Article binding playbook
-
-Use when the user wants a group of notes attached to one article record.
-
-Steps:
-
-1. Create the article once with `createArticle`.
-2. Search or list the notes that should be bound.
-3. Update each note with `articleId` only, unless the task asks for more changes.
-4. Preserve tags, visibility, title, and pin state.
-
-```ts
-const client = new RoteClient();
-const article = await client.createArticle({
-  content: "# Project Digest",
-});
-
-const notes = await client.searchNotes({
-  keyword: "digest",
-  limit: 20,
-});
-
-for (const note of notes) {
-  await client.updateNote({
-    noteId: note.id,
-    articleId: article.id,
-  });
-}
-```
-
-### Permission diagnostics playbook
-
-Use when writes fail unexpectedly, when a new key is being verified, or before sensitive operations.
-
-Steps:
-
-1. Read the current profile with `getProfile`.
-2. Read permissions with `getPermissions`.
-3. Compare the intended operation against the available permission set.
-4. If permissions are insufficient, stop and surface the gap instead of retrying blindly.
-
-```ts
-const client = new RoteClient();
-const profile = await client.getProfile();
-const permissions = await client.getPermissions();
-
-console.log({
-  username: profile.username,
-  permissions: permissions.permissions,
+await client.finalizeAttachmentUploads({
+  noteId: "<noteId>",
+  attachments: [
+    {
+      uuid: upload.items[0].uuid,
+      originalKey: upload.items[0].original.key,
+      pairedVideoKey: upload.items[0].pairedVideo?.key,
+      pairedVideoSize: 5678,
+      pairedVideoMimetype: "video/quicktime",
+      pairedVideoFilename: "photo.mov",
+      size: 1234,
+      mimetype: "image/heic",
+      mediaKind: "livePhoto",
+    },
+  ],
 });
 ```
 
-### Search-then-update playbook
+The caller owns the actual PUT requests when using the SDK primitives. Do not log presigned URLs. If `reservationId` and `expiresAt` indicate expiry, call `refreshAttachmentUploadReservation(reservationId)` and use the returned URLs before PUT.
 
-Use when the user describes notes by topic or content rather than by exact ID.
+## OAuth HTTP MCP tools
 
-Steps:
+These tools are exposed by Rote Server and use OAuth:
 
-1. Resolve likely matches with `searchNotes`.
-2. If multiple candidates appear, summarize the top matches and narrow the target set.
-3. Apply `updateNote` only after the target note IDs are known.
-4. Report exactly which notes were changed.
+- Notes: `notes_create`, `notes_list`, `notes_search`, `notes_get`, `notes_batch_get`, `notes_update`, `notes_delete`
+- Shares: `notes_share_get`, `notes_share_create`, `notes_share_revoke`
+- Articles: `articles_create`, `articles_list`, `articles_get`, `articles_get_by_note`, `articles_update`, `articles_delete`
+- Reactions: `reactions_add`, `reactions_remove`
+- Account/data: `profile_get`, `profile_update`, `permissions_get`, `tags_get`, `heatmap_get`, `statistics_get`, `settings_get`, `settings_update`
+- Attachments: `attachments_presign_upload`, `attachments_finalize_upload`, `attachments_sort`, `attachments_delete_one`, `attachments_delete_many`
 
-```ts
-const client = new RoteClient();
-const matches = await client.searchNotes({
-  keyword: "launch recap",
-  limit: 10,
-});
+Share tools appear only when the authorization includes `notes:share`. Creation validates the configured frontend origin before writing; status can return an existing token with `url: null`.
 
-for (const note of matches) {
-  await client.updateNote({
-    noteId: note.id,
-    pin: true,
-  });
-}
-```
+## Toolkit stdio MCP tools
 
-### Explore discovery playbook
+These tools run locally and use the configured OpenKey:
 
-Use when the user wants public notes from the explore page, trend sampling, or inspiration material without requiring account auth.
+- Notes: `rote_create_note`, `rote_get_note`, `rote_update_note`, `rote_delete_note`, `rote_search_notes`, `rote_list_notes`, `rote_explore_notes`, `rote_batch_get_notes`
+- Shares: `rote_get_note_share`, `rote_create_note_share`, `rote_revoke_note_share`
+- Articles: `rote_create_article`, `rote_get_article`, `rote_update_article`, `rote_delete_article`, `rote_list_articles`, `rote_get_article_by_note`
+- Reactions: `rote_add_reaction`, `rote_remove_reaction`
+- Account/data: `rote_get_profile`, `rote_update_profile`, `rote_get_permissions`, `rote_get_tags`, `rote_get_heatmap`, `rote_get_statistics`, `rote_get_settings`, `rote_update_settings`
+- Attachments: `rote_delete_attachment`, `rote_batch_delete_attachments`, `rote_update_attachments_sort`
 
-Steps:
+Toolkit stdio MCP intentionally exposes no local-file upload tool and accepts no local path for attachment uploads.
 
-1. Use `exploreNotes` or `rote explore` first.
-2. Paginate with `limit` and `skip` for broader sampling.
-3. Treat results as public discovery data, not as directly mutable targets.
-4. Switch to authenticated search or update flows only if the user then wants operations on owned notes.
+## Permissions and failure handling
 
-```ts
-const client = new RoteClient();
-const notes = await client.exploreNotes({
-  limit: 20,
-  skip: 0,
-});
-```
-
-## MCP tools
-
-Available tools:
-
-- `rote_create_note`
-- `rote_update_note`
-- `rote_delete_note`
-- `rote_create_article`
-- `rote_list_articles`
-- `rote_get_article_by_note`
-- `rote_batch_get_notes`
-- `rote_add_reaction`
-- `rote_remove_reaction`
-- `rote_get_profile`
-- `rote_update_profile`
-- `rote_get_permissions`
-- `rote_search_notes`
-- `rote_list_notes`
-- `rote_explore_notes`
-- `rote_get_tags`
-- `rote_get_heatmap`
-- `rote_get_statistics`
-- `rote_get_settings`
-- `rote_update_settings`
-- `rote_batch_delete_attachments`
-- `rote_update_attachments_sort`
-
-## MCP usage guidance
-
-- Use `rote_search_notes` or `rote_list_notes` first when the target note ID is unknown.
-- Use `rote_explore_notes` for public note discovery when authentication is unnecessary or unavailable.
-- Use `rote_update_note` for content edits, tag changes, visibility changes, pinning, archiving, or article rebinding.
-- Use `rote_create_article` plus `rote_create_note`/`rote_update_note` when building a note collection under one article.
-- Use `rote_get_permissions` before operations that may fail due to restricted keys.
+- Use `permissions_get` for OAuth or `rote permissions` / `getPermissions` for OpenKey diagnostics.
+- Do not retry a missing `notes:share` scope with OpenKey, or a missing `SHAREROTE` permission with OAuth, without an explicit user choice.
+- If a target is ambiguous, return candidate IDs before mutating.
+- For destructive batches, summarize the target set first and report scanned, changed, skipped, and failed counts.
+- Surface server errors without embedding authorization headers, OpenKeys, share tokens, bearer URLs, or presigned URLs.
+- Anonymous share reading remains `/v2/api/shares/:token`; a share token never authorizes Open API or MCP operations.

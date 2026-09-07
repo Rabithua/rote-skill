@@ -2,7 +2,7 @@
 
 # Rote Skill
 
-This repository contains a reusable skill for AI agents to work with Rote through `rote-toolkit`.
+This repository contains a reusable skill for AI agents to work with Rote through the OAuth HTTP MCP or `rote-toolkit` OpenKey workflows.
 
 ## Included Files
 
@@ -15,8 +15,8 @@ This repository contains a reusable skill for AI agents to work with Rote throug
 - [Rote](https://github.com/Rabithua/Rote)
 - [rote-toolkit](https://github.com/Rabithua/rote-toolkit)
 
-## Version Reminder
+## Compatibility
 
-Keep `rote-toolkit` up to date when updating this skill.
-
-New skill capabilities may depend on newly added CLI, SDK, or MCP features in `rote-toolkit`, so users should upgrade `rote-toolkit` to the latest available version before using newly documented features.
+- Share-link workflows require Rote Server 2.4.0 or later.
+- Local CLI, SDK, and stdio MCP workflows documented here require `rote-toolkit` 0.6.0 or later.
+- OAuth and OpenKey are separate authentication paths and are never switched silently.
