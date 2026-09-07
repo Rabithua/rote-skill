@@ -1,25 +1,28 @@
 ---
 name: rote
-description: Use rote-toolkit to create, update, delete, search, list, and explore Rote notes and related resources through the Rote API. Trigger this skill when Codex needs to operate a Rote instance from terminal workflows or AI-agent flows, especially for note CRUD, public explore-note discovery, article creation, reactions, profile updates, permission checks, or MCP server setup via the rote-toolkit CLI, SDK, or MCP server.
+description: Manage Rote notes, articles, attachments, reactions, settings, and note share links. Use when an agent should operate Rote through an already-connected OAuth HTTP MCP server or through rote-toolkit CLI, SDK, or stdio MCP with a local OpenKey workflow.
 ---
 
 # Rote
 
-Use `rote-toolkit` instead of reimplementing Rote API calls.
+Choose one authenticated path and keep its trust boundary explicit.
 
-## Decision Rules
+## Connection choice
 
-- Prefer the CLI for one-off operations.
-- Prefer `RoteClient` for Node/TypeScript integrations.
-- Prefer MCP only when the user explicitly needs MCP tool access.
-- Use `explore`/`exploreNotes`/`rote_explore_notes` for public explore-page notes; this path does not require OpenKey auth.
-- Check `~/.rote-toolkit/config.json` before authenticated operations. If missing, run `rote config`.
-- Do not hand-roll `fetch` calls to the Rote OpenKey API if `RoteClient` already covers the operation.
-- Normalize tags as arrays for SDK/MCP usage and comma-separated strings for CLI usage.
-- When modifying notes, require a `noteId` and at least one updated field.
-- For one-shot user tasks, prefer executing the CLI over writing new helper code.
-- For repeated or embedded workflows, import `RoteClient` from `rote-toolkit`.
+- Prefer an already-connected Rote Server HTTP MCP for remote agent work. It uses OAuth scopes such as `notes:share`.
+- Use `rote-toolkit` 0.6.0 or later for local terminal, Node/TypeScript, or stdio MCP workflows backed by OpenKey permissions such as `SHAREROTE`.
+- Do not silently switch between OAuth and OpenKey. If the selected path lacks access, report the missing scope or permission and let the user choose how to proceed.
+- Use Toolkit CLI for one-off local operations, `RoteClient` for application code, and Toolkit stdio MCP for local agent integrations.
+- Use public explore reads without authentication only when the task genuinely concerns public discovery.
 
-## References
+## Safety rules
 
-- Read [references/commands.md](./references/commands.md) only when you need exact commands, batch-operation patterns, failure handling, or MCP tool names.
+- Resolve loosely described notes before mutation. Preserve fields the user did not ask to change.
+- Create or revoke a share link only when the user explicitly requests that action. Reading share status is non-mutating.
+- Treat a share URL as a bearer credential: show it only to the intended user when needed, and do not repeat it in logs, summaries, or diagnostics.
+- Toolkit attachment upload may read only file paths explicitly supplied by the user. Toolkit stdio MCP has no local-file upload tool and must not read arbitrary files.
+- Prefer Toolkit or connected MCP tools over handwritten OpenKey HTTP calls.
+
+## Reference
+
+Read [references/commands.md](./references/commands.md) when exact CLI commands, SDK methods, MCP tool names, attachment steps, permissions, or failure handling are needed.
