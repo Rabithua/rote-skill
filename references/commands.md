@@ -85,6 +85,8 @@ rote settings update --allow-explore true
 rote mcp
 ```
 
+Fixed in rote-toolkit 0.6.1 (PR Rabithua/rote-toolkit#3, published 2026-11): versions < 0.6.1 had `rote tags` / `rote_get_tags` printing `undefined: N` and `rote heatmap` / `rote_get_heatmap` crashing with `forEach is not a function`, because the server returns `{ name, count }` items and a `{ "YYYY-MM-DD": count }` map while the client assumed the declared `RoteTag`/`HeatmapDay[]` shapes. 0.6.1 normalizes in `getTags`/`getHeatmap` and adds `RoteStatistics.articleCount`. If these symptoms appear, upgrade the toolkit.
+
 ## SDK
 
 ```ts
