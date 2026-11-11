@@ -21,6 +21,8 @@ rote permissions
 
 `SHAREROTE` is required for share status, creation, and revocation and is not selected for a newly created OpenKey by default.
 
+`rote config` is interactive-only (no flags). To switch OpenKeys non-interactively, rewrite `~/.rote-toolkit/config.json` (`apiUrl`, `openKey`) with a script — print only a key prefix, never the full key — then run `rote permissions` to verify the new key before using it.
+
 ## CLI
 
 ### Notes
@@ -102,6 +104,8 @@ const client = new RoteClient();
 - Shares: `getNoteShare`, `createNoteShare`, `revokeNoteShare`, `getNoteShareState`, `createResolvedNoteShare`, `resolveNoteShareUrl`
 - Attachments: `presignAttachmentUploads`, `refreshAttachmentUploadReservation`, `finalizeAttachmentUploads`, `deleteAttachment`, `batchDeleteAttachments`, `updateAttachmentsSortOrder`
 - Other: `addReaction`, `removeReaction`, `getProfile`, `updateProfile`, `getPermissions`, `getTags`, `getHeatmap`, `getStatistics`, `getSettings`, `updateSettings`
+
+List-style methods (`listNotes`, `searchNotes`, `exploreNotes`, `getTags`) return a BARE array, not an `{ items }` envelope. Normalize with `Array.isArray(res) ? res : (res.items ?? [])` — a plain `res.items ?? []` fallback on the raw array silently yields zero results and reads like an empty account.
 
 ### Safe partial updates
 
