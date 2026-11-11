@@ -1,6 +1,6 @@
 ---
 name: rote
-description: Manage Rote notes, articles, attachments, reactions, settings, and note share links. Use when an agent should operate Rote through an already-connected OAuth HTTP MCP server or through rote-toolkit CLI, SDK, or stdio MCP with a local OpenKey workflow.
+description: Operate Rote notes/CLI/SDK and the scheduled DailyNews bot.
 ---
 
 # Rote
@@ -10,7 +10,7 @@ Choose one authenticated path and keep its trust boundary explicit.
 ## Connection choice
 
 - Prefer an already-connected Rote Server HTTP MCP for remote agent work. It uses OAuth scopes such as `notes:share`.
-- Use `rote-toolkit` 0.6.0 or later for local terminal, Node/TypeScript, or stdio MCP workflows backed by OpenKey permissions such as `SHAREROTE`.
+- Use `rote-toolkit` 0.6.1 or later for local terminal, Node/TypeScript, or stdio MCP workflows backed by OpenKey permissions such as `SHAREROTE`.
 - Do not silently switch between OAuth and OpenKey. If the selected path lacks access, report the missing scope or permission and let the user choose how to proceed.
 - Use Toolkit CLI for one-off local operations, `RoteClient` for application code, and Toolkit stdio MCP for local agent integrations.
 - Use public explore reads without authentication only when the task genuinely concerns public discovery.
@@ -26,3 +26,7 @@ Choose one authenticated path and keep its trust boundary explicit.
 ## Reference
 
 Read [references/commands.md](./references/commands.md) when exact CLI commands, SDK methods, MCP tool names, attachment steps, permissions, or failure handling are needed.
+
+Read [references/ecosystem.md](./references/ecosystem.md) before fixing bugs in or releasing the local Rote repos — live-shape probing rules, the npm release runbook (including the publish OTP handoff to the user), and skill-repo tagging.
+
+Read [references/dailynews-bot.md](./references/dailynews-bot.md) before operating, rebuilding, or troubleshooting the scheduled DailyNews bot (3 curated news notes per day posted to Rote by cron).
