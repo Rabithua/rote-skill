@@ -203,6 +203,7 @@ These tools are exposed by Rote Server and use OAuth:
 - Reactions: `reactions_add`, `reactions_remove`
 - Account/data: `profile_get`, `profile_update`, `permissions_get`, `tags_get`, `heatmap_get`, `statistics_get`, `settings_get`, `settings_update`
 - Attachments: `attachments_presign_upload`, `attachments_finalize_upload`, `attachments_sort`, `attachments_delete_one`, `attachments_delete_many`
+- Gift campaigns (visible to `super_admin` accounts only): `gift_import_codes`, `gift_allocate`, `gift_status`, `gift_detail`, `gift_grant`
 
 Share tools appear only when the authorization includes `notes:share`. Creation validates the configured frontend origin before writing; status can return an existing token with `url: null`.
 
